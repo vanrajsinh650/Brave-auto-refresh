@@ -1,36 +1,49 @@
-let TARGET_TAB_ID = null;
-let intervalId = null;
-const INTERVAL = 10 * 1000; // 10 seconds
+let targetTabId = null;
+let refreshInterval = 10000; // default 10s
+let alarmName = "tabRefresh";
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  
-  // Select current tab
-  if (message.action === "select_tab") {
-    TARGET_TAB_ID = message.tabId;
-    chrome.storage.local.set({ TARGET_TAB_ID });
-    sendResponse({ status: "Tab selected", tabId: TARGET_TAB_ID });
+// Load saved settings when extension starts
+chrome.runtime.onStartup.addListener(loadSettings);
+chrome.runtime.onInstalled.addListener(loadSettings);
+
+function loadSettings() {
+  chrome.storage.local.get(["targetTabId", "refreshInterval"], (data) => {
+    if (data.targetTabId) targetTabId = data.targetTabId;
+    if (data.refreshInterval) refreshInterval = data.refreshInterval;
+  });
+}
+
+// Listen messages from popup UI
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.action === "select_tab") {
+    targetTabId = msg.tabId;
+    chrome.storage.local.set({ targetTabId });
+    sendResponse({ status: "Tab selected", tabId: targetTabId });
   }
 
-  // Start refreshing
-  if (message.action === "start_refresh") {
-    if (TARGET_TAB_ID) {
-      if (intervalId) clearInterval(intervalId);
-
-      intervalId = setInterval(() => {
-        chrome.tabs.reload(TARGET_TAB_ID);
-        console.log("Refreshed tab:", TARGET_TAB_ID);
-      }, INTERVAL);
-
-      sendResponse({ status: "Refresh started" });
-    } else {
-      sendResponse({ status: "No tab selected" });
-    }
+  if (msg.action === "set_interval") {
+    refreshInterval = msg.interval;
+    chrome.storage.local.set({ refreshInterval });
+    sendResponse({ status: "Interval updated" });
   }
 
-  // Stop refreshing
-  if (message.action === "stop_refresh") {
-    if (intervalId) clearInterval(intervalId);
-    intervalId = null;
-    sendResponse({ status: "Refresh stopped" });
+  if (msg.action === "start_refresh") {
+    chrome.alarms.clear(alarmName, () => {
+      chrome.alarms.create(alarmName, { periodInMinutes: refreshInterval / 60000 });
+    });
+    sendResponse({ status: "Auto refresh started" });
+  }
+
+  if (msg.action === "stop_refresh") {
+    chrome.alarms.clear(alarmName);
+    sendResponse({ status: "Auto refresh stopped" });
+  }
+});
+
+// Refresh tab when alarm triggers
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === alarmName && targetTabId) {
+    chrome.tabs.reload(targetTabId);
+    console.log("Refreshed tab:", targetTabId);
   }
 });
