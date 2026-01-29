@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Universal Tab Refresher",
+  "version": "1.0",
+  "description": "Refresh any selected tab every 10 seconds",
+  "permissions": ["tabs", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Tab Refresher"
+  }
+}
