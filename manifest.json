@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Tab Refresher",
+  "name": "Pro Tab Refresher",
   "version": "2.0",
   "description": "Refresh any selected tab automatically",
   "permissions": ["tabs", "storage", "alarms"],
@@ -9,6 +9,6 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Tab Refresher"
+    "default_title": "Pro Tab Refresher"
   }
 }
